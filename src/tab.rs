@@ -1,11 +1,12 @@
-use gtk4::{Button, Entry};
+use gtk4::{Application, Button, Entry};
 use gtk4::{prelude::*, Box, Label, Notebook};
-use webkit6::WebView;
+use webkit6::{CookieManager, NetworkSession, WebView};
 use webkit6::prelude::*;
 
 use crate::search::process_search_input;
+use crate::setting::{create_settings_window, load_settings, apply_settings};
 
-pub fn create_tab(default_uri: &str, notebook: &Notebook) {
+pub fn create_tab(default_uri: &str, notebook: &Notebook, app: &Application) {
     let tab_box = Box::new(gtk4::Orientation::Horizontal, 0);
     let tab_label = Label::new(Some("New label"));
     let tab_close = Button::with_label("x");
@@ -31,11 +32,26 @@ pub fn create_tab(default_uri: &str, notebook: &Notebook) {
     top_bar.append(&search_e);
 
     let new = Button::with_label("+");
+    let settings = Button::with_label("⋮");
 
     top_bar.append(&new);
+    top_bar.append(&settings);
 
+    let settings_rc = load_settings();
+
+    // Create and configure WebView
     let webview = WebView::new();
+
+    let ses: NetworkSession = webview.network_session().expect("no network session");
+
+    let cookie: CookieManager = ses.cookie_manager().expect("cookie manager not found");
+
+    cookie.set_persistent_storage("rubra-cookies.sqlite", webkit6::CookiePersistentStorage::Sqlite);
+
     webview.load_uri(default_uri);
+
+    // Apply settings to the webview
+    apply_settings(&webview, &settings_rc.borrow());
 
     webview.set_vexpand(true);
 
@@ -62,8 +78,15 @@ pub fn create_tab(default_uri: &str, notebook: &Notebook) {
     });
 
     let notebook_btn = notebook.clone();
+    let app_clone = app.clone();
     new.connect_clicked(move |_| {
-        create_tab("https://start.duckduckgo.com/", &notebook_btn);
+        create_tab("https://start.duckduckgo.com/", &notebook_btn, &app_clone);
+    });
+
+    let app_clone = app.clone();
+    let webview_btn = webview.clone();
+    settings.connect_clicked(move |_| {
+       create_settings_window(&app_clone, &webview_btn);
     });
 
     let webview_btn = webview.clone();

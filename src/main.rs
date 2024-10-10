@@ -3,6 +3,7 @@ use gtk4::prelude::*;
 use tab::create_tab;
 
 mod tab;
+mod setting;
 mod search;
 
 fn main() {
@@ -34,7 +35,7 @@ fn create_window(app: &Application) {
     let notebook = Notebook::new();
     notebook.set_scrollable(true);
 
-    create_tab("https://start.duckduckgo.com/", &notebook);
+    create_tab("https://start.duckduckgo.com/", &notebook, &app);
 
     window.set_child(Some(&notebook));
 
